@@ -1,5 +1,5 @@
 export type SkyPalette = 'cristal' | 'linea' | 'orbita' | 'umbral'
-export type SkyCometKind = 'polvo' | 'tenue' | 'suave' | 'brasa' | 'velo' | 'calma' | 'fugaz'
+export type SkyCometKind = 'polvo' | 'tenue' | 'suave' | 'brasa' | 'velo' | 'calma' | 'fugaz' | 'bruma'
 
 type Rgb = [number, number, number]
 
@@ -52,6 +52,7 @@ interface CometLook {
   even: boolean
   veil?: boolean
   snap?: boolean
+  haze?: boolean
 }
 
 interface Comet {
@@ -73,7 +74,7 @@ const STAR_DUR_EXTRA = 2
 const SKY_FULL = STAR_FIRST + STAR_MAG_LEAD + STAR_SPAN + STAR_DUR + STAR_DUR_EXTRA
 const COMET_DELAY = SKY_FULL / 2
 const COMET_GAPS = [3, 6, 9]
-const COMET_ORDER: SkyCometKind[] = ['polvo', 'tenue', 'suave', 'brasa', 'velo', 'calma', 'fugaz']
+const COMET_ORDER: SkyCometKind[] = ['polvo', 'tenue', 'suave', 'brasa', 'velo', 'calma', 'fugaz', 'bruma']
 
 const PALETTES: Record<SkyPalette, {
   sky: [string, string, string]
@@ -207,6 +208,25 @@ function makeDustSprite(core: string, mid: string, veil: string) {
   gradient.addColorStop(0.2, mid)
   gradient.addColorStop(0.5, veil)
   gradient.addColorStop(0.78, 'rgba(255,255,255,0.05)')
+  gradient.addColorStop(1, 'rgba(0,0,0,0)')
+  context.fillStyle = gradient
+  context.fillRect(0, 0, size, size)
+  return sprite
+}
+
+function makeHazeSprite(core: string, veil: string) {
+  const size = 160
+  const sprite = document.createElement('canvas')
+  sprite.width = size
+  sprite.height = size
+  const context = sprite.getContext('2d')
+  if (!context) return sprite
+  const radius = size / 2
+  const gradient = context.createRadialGradient(radius, radius, 0, radius, radius, radius)
+  gradient.addColorStop(0, core)
+  gradient.addColorStop(0.22, veil)
+  gradient.addColorStop(0.55, 'rgba(255,255,255,0.05)')
+  gradient.addColorStop(0.82, 'rgba(255,255,255,0.015)')
   gradient.addColorStop(1, 'rgba(0,0,0,0)')
   context.fillStyle = gradient
   context.fillRect(0, 0, size, size)
@@ -416,6 +436,25 @@ const COMET_LOOK: Record<SkyCometKind, CometLook> = {
     even: true,
     snap: true,
   },
+  bruma: {
+    duration: 1.7,
+    tau: 2.2,
+    width: 30,
+    alpha: 0.05,
+    grow: 0.4,
+    coma: 22,
+    core: 5,
+    head: 0.9,
+    sprite: 'dust',
+    dustWidth: 0,
+    dustAlpha: 0,
+    dustOffset: 0,
+    life: 2.6,
+    coast: 0.2,
+    even: true,
+    snap: true,
+    haze: true,
+  },
 }
 
 function createComet(kind: SkyCometKind): Comet {
@@ -454,6 +493,11 @@ function createComet(kind: SkyCometKind): Comet {
     fugaz: {
       a: { x: -0.28, y: 0.14 },
       b: { x: 0.02, y: 0.24 },
+      c: end,
+    },
+    bruma: {
+      a: { x: -0.3, y: 0.18 },
+      b: { x: 0, y: 0.26 },
       c: end,
     },
   }
@@ -512,6 +556,12 @@ export function mountStarfield(
     linea: makeDustSprite('rgba(236, 244, 255, 0.92)', 'rgba(198, 216, 255, 0.58)', 'rgba(170, 198, 255, 0.26)'),
     orbita: makeDustSprite('rgba(255, 228, 190, 0.95)', 'rgba(255, 176, 112, 0.6)', 'rgba(255, 150, 80, 0.28)'),
     umbral: makeDustSprite('rgba(255, 224, 168, 0.94)', 'rgba(228, 176, 210, 0.55)', 'rgba(196, 150, 255, 0.26)'),
+  }
+  const hazeSprites: Record<SkyPalette, HTMLCanvasElement> = {
+    cristal: makeHazeSprite('rgba(255, 244, 228, 0.42)', 'rgba(255, 214, 176, 0.16)'),
+    linea: makeHazeSprite('rgba(236, 244, 255, 0.4)', 'rgba(198, 216, 255, 0.15)'),
+    orbita: makeHazeSprite('rgba(255, 228, 190, 0.42)', 'rgba(255, 176, 112, 0.16)'),
+    umbral: makeHazeSprite('rgba(255, 224, 168, 0.4)', 'rgba(228, 176, 210, 0.15)'),
   }
   const ionSprites: Record<SkyPalette, HTMLCanvasElement> = {
     cristal: makeIonSprite('rgba(226, 236, 255, 0.82)', 'rgba(176, 208, 255, 0.5)', 'rgba(150, 190, 255, 0.16)'),
@@ -695,18 +745,38 @@ export function mountStarfield(
   }
 
   function drawTail(paletteName: SkyPalette, look: CometLook) {
-    const sprite = look.sprite === 'ion' ? ionSprites[paletteName] : dustSprites[paletteName]
+    const sprite = look.haze
+      ? hazeSprites[paletteName]
+      : look.sprite === 'ion' ? ionSprites[paletteName] : dustSprites[paletteName]
     for (let index = 0; index < samples.length; index += 1) {
       const sample = samples[index]
       if (!sample) continue
       const age = elapsed - sample.born
       const unit = clamp(age / Math.max(sample.life, 0.001))
-      const fade = look.snap
-        ? 1 - smoothstep((unit - 0.5) / 0.5)
-        : moteFade(age, sample.life, look.even)
+      const fade = look.haze
+        ? (1 - smoothstep((unit - 0.18) / 0.82)) * (0.62 + 0.38 * (1 - unit))
+        : look.snap
+          ? 1 - smoothstep((unit - 0.5) / 0.5)
+          : moteFade(age, sample.life, look.even)
       if (fade < 0.012) continue
       const x = sample.nx * width
       const y = sample.ny * height
+      if (look.haze) {
+        const swell = 0.78 + unit * 1.55
+        const bulk = 0.72 + 0.55 * Math.abs(Math.sin(sample.nx * 63 + sample.ny * 41))
+        const puff = look.width * swell * bulk
+        const side = Math.sin(sample.nx * 37 + sample.born * 2.4) * look.width * (0.28 + unit * 0.85)
+        const tilt = Math.sin(sample.nx * 48 + sample.ny * 31) * 0.7
+        ctx.save()
+        ctx.translate(x + sample.px * side, y + sample.py * side)
+        ctx.rotate(tilt)
+        ctx.globalAlpha = fade * look.alpha * 0.42
+        ctx.drawImage(sprite, -puff * 1.05, -puff * 0.82, puff * 2.1, puff * 1.64)
+        ctx.globalAlpha = fade * look.alpha
+        ctx.drawImage(sprite, -puff * 0.5, -puff * 0.42, puff, puff * 0.84)
+        ctx.restore()
+        continue
+      }
       if (look.even) {
         const body = 1
         const across = look.width * (look.snap ? 0.95 - unit * 0.28 : 0.42)
@@ -824,21 +894,23 @@ export function mountStarfield(
       const py = dx / length
       const last = samples[samples.length - 1]
       const moved = last ? Math.hypot(pos.x - last.nx * width, pos.y - last.ny * height) : 99
-      const spacing = look.snap
-        ? Math.max(1.4, look.width * 0.28)
-        : look.even
-          ? Math.max(1.1, look.width * 0.2)
-          : Math.max(1.05, look.width * 0.11)
+      const spacing = look.haze
+        ? Math.max(4.2, look.width * 0.18)
+        : look.snap
+          ? Math.max(1.4, look.width * 0.28)
+          : look.even
+            ? Math.max(1.1, look.width * 0.2)
+            : Math.max(1.05, look.width * 0.11)
       if ((moved > spacing || !last) && headAlpha > 0.04) {
         const span = 0.008 * comet.duration
         const carry = look.coast * (0.82 + Math.random() * 0.36)
-        const spread = (look.snap ? 1.6 : look.even ? 2 : look.sprite === 'dust' ? 16 : 5) * (Math.random() - 0.5)
         const fromX = last ? last.nx * width : pos.x
         const fromY = last ? last.ny * height : pos.y
         const gap = Math.hypot(pos.x - fromX, pos.y - fromY)
-        const steps = look.snap ? Math.max(1, Math.ceil(gap / spacing)) : 1
+        const steps = look.snap || look.haze ? Math.max(1, Math.ceil(gap / spacing)) : 1
         for (let step = 1; step <= steps; step += 1) {
           const t = step / steps
+          const spread = (look.haze ? 36 : look.snap ? 1.6 : look.even ? 2 : look.sprite === 'dust' ? 16 : 5) * (Math.random() - 0.5)
           samples.push({
             nx: (fromX + (pos.x - fromX) * t) / width,
             ny: (fromY + (pos.y - fromY) * t) / height,
@@ -847,7 +919,7 @@ export function mountStarfield(
             px,
             py,
             born: elapsed,
-            life: look.life,
+            life: look.life * (look.haze ? 0.7 + Math.random() * 0.6 : 1),
           })
         }
       }

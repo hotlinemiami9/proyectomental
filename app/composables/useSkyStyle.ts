@@ -1,5 +1,5 @@
 export type SkyStyleId = 'cristal' | 'linea' | 'orbita' | 'umbral'
-export type CometKind = 'polvo' | 'tenue' | 'suave' | 'brasa' | 'velo' | 'calma' | 'fugaz'
+export type CometKind = 'polvo' | 'tenue' | 'suave' | 'brasa' | 'velo' | 'calma' | 'fugaz' | 'bruma'
 
 export interface SkyStyleOption {
   id: SkyStyleId
@@ -26,6 +26,7 @@ export const cometKinds: CometKindOption[] = [
   { id: 'velo', label: 'Velo' },
   { id: 'calma', label: 'Calma' },
   { id: 'fugaz', label: 'Fugaz' },
+  { id: 'bruma', label: 'Bruma' },
 ]
 
 export function useSkyStyle() {
