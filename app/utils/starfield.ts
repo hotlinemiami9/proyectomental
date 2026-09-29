@@ -1,5 +1,5 @@
 export type SkyPalette = 'cristal' | 'linea' | 'orbita' | 'umbral'
-export type SkyCometKind = 'polvo' | 'tenue' | 'suave'
+export type SkyCometKind = 'polvo' | 'tenue' | 'suave' | 'brasa' | 'velo' | 'calma' | 'fugaz'
 
 type Rgb = [number, number, number]
 
@@ -20,14 +20,18 @@ interface Star {
   cycles: boolean
   cyclePeriod: number
   cyclePhase: number
+  cross: number
 }
 
 interface Sample {
   nx: number
   ny: number
+  vx: number
+  vy: number
   px: number
   py: number
   born: number
+  life: number
 }
 
 interface CometLook {
@@ -43,6 +47,11 @@ interface CometLook {
   dustWidth: number
   dustAlpha: number
   dustOffset: number
+  life: number
+  coast: number
+  even: boolean
+  veil?: boolean
+  snap?: boolean
 }
 
 interface Comet {
@@ -63,9 +72,8 @@ const STAR_DUR = 9.5
 const STAR_DUR_EXTRA = 2
 const SKY_FULL = STAR_FIRST + STAR_MAG_LEAD + STAR_SPAN + STAR_DUR + STAR_DUR_EXTRA
 const COMET_DELAY = SKY_FULL / 2
-const COMET_GAP_MIN = 9
-const COMET_GAP_MAX = 9
-const COMET_ORDER: SkyCometKind[] = ['polvo', 'tenue', 'suave']
+const COMET_GAPS = [3, 6, 9]
+const COMET_ORDER: SkyCometKind[] = ['polvo', 'tenue', 'suave', 'brasa', 'velo', 'calma', 'fugaz']
 
 const PALETTES: Record<SkyPalette, {
   sky: [string, string, string]
@@ -221,6 +229,41 @@ function makeSprite(size: number, inner: string, mid: string) {
   return sprite
 }
 
+function makeSpikeSprite() {
+  const width = 256
+  const height = 64
+  const sprite = document.createElement('canvas')
+  sprite.width = width
+  sprite.height = height
+  const context = sprite.getContext('2d')
+  if (!context) return sprite
+  const along = context.createLinearGradient(0, 0, width, 0)
+  along.addColorStop(0, 'rgba(255,255,255,0)')
+  along.addColorStop(0.18, 'rgba(255,255,255,0.08)')
+  along.addColorStop(0.5, 'rgba(255,255,255,1)')
+  along.addColorStop(0.82, 'rgba(255,255,255,0.08)')
+  along.addColorStop(1, 'rgba(255,255,255,0)')
+  context.fillStyle = along
+  context.fillRect(0, 0, width, height)
+  context.globalCompositeOperation = 'destination-in'
+  const across = context.createLinearGradient(0, 0, 0, height)
+  across.addColorStop(0, 'rgba(255,255,255,0)')
+  across.addColorStop(0.32, 'rgba(255,255,255,0.2)')
+  across.addColorStop(0.5, 'rgba(255,255,255,1)')
+  across.addColorStop(0.68, 'rgba(255,255,255,0.2)')
+  across.addColorStop(1, 'rgba(255,255,255,0)')
+  context.fillStyle = across
+  context.fillRect(0, 0, width, height)
+  return sprite
+}
+
+function moteFade(age: number, life: number, even: boolean) {
+  const unit = age / life
+  if (unit >= 1) return 0
+  if (!even) return Math.exp(-unit * 2.15) * (1 - smoothstep((unit - 0.62) / 0.38))
+  return 1 - smoothstep((unit - 0.72) / 0.28)
+}
+
 function starColor(roll: number): Rgb {
   if (roll < 0.08) return [255, 186, 146]
   if (roll < 0.24) return [255, 220, 190]
@@ -246,6 +289,7 @@ function createStar(nx: number, ny: number, mag: number, roll: number): Star {
     cycles: mag < 0.84 && Math.random() < 0.7,
     cyclePeriod: 26 + Math.random() * 34,
     cyclePhase: Math.random() * Math.PI * 2,
+    cross: Math.random(),
   }
 }
 
@@ -256,13 +300,16 @@ const COMET_LOOK: Record<SkyCometKind, CometLook> = {
     width: 20,
     alpha: 0.2,
     grow: 0.28,
-    coma: 54,
-    core: 12,
+    coma: 44,
+    core: 10,
     head: 1,
     sprite: 'dust',
     dustWidth: 0,
     dustAlpha: 0,
     dustOffset: 0,
+    life: 4.4,
+    coast: 0.24,
+    even: true,
   },
   tenue: {
     duration: 10,
@@ -277,6 +324,9 @@ const COMET_LOOK: Record<SkyCometKind, CometLook> = {
     dustWidth: 0,
     dustAlpha: 0,
     dustOffset: 0,
+    life: 3.8,
+    coast: 0.1,
+    even: true,
   },
   suave: {
     duration: 11,
@@ -291,6 +341,80 @@ const COMET_LOOK: Record<SkyCometKind, CometLook> = {
     dustWidth: 0,
     dustAlpha: 0,
     dustOffset: 0,
+    life: 4.2,
+    coast: 0.18,
+    even: true,
+  },
+  brasa: {
+    duration: 9,
+    tau: 4.2,
+    width: 26,
+    alpha: 0.24,
+    grow: 0.36,
+    coma: 62,
+    core: 14,
+    head: 1,
+    sprite: 'dust',
+    dustWidth: 0,
+    dustAlpha: 0,
+    dustOffset: 0,
+    life: 3.2,
+    coast: 0.3,
+    even: false,
+    veil: true,
+  },
+  velo: {
+    duration: 12,
+    tau: 7.4,
+    width: 9,
+    alpha: 0.14,
+    grow: 0.04,
+    coma: 24,
+    core: 5,
+    head: 0.42,
+    sprite: 'ion',
+    dustWidth: 0,
+    dustAlpha: 0,
+    dustOffset: 0,
+    life: 4.8,
+    coast: 0.08,
+    even: false,
+  },
+  calma: {
+    duration: 12,
+    tau: 6.8,
+    width: 16,
+    alpha: 0.16,
+    grow: 0.18,
+    coma: 40,
+    core: 9,
+    head: 0.7,
+    sprite: 'dust',
+    dustWidth: 24,
+    dustAlpha: 0.08,
+    dustOffset: 5,
+    life: 4.4,
+    coast: 0.2,
+    even: false,
+    veil: true,
+  },
+  fugaz: {
+    duration: 1.7,
+    tau: 2.2,
+    width: 12,
+    alpha: 0.14,
+    grow: 0.12,
+    coma: 20,
+    core: 5,
+    head: 1,
+    sprite: 'dust',
+    dustWidth: 0,
+    dustAlpha: 0,
+    dustOffset: 0,
+    life: 2.1,
+    coast: 0.04,
+    even: true,
+    snap: true,
   },
 }
 
@@ -312,6 +436,26 @@ function createComet(kind: SkyCometKind): Comet {
       b: { x: 0.2, y: 0.18 },
       c: end,
     },
+    brasa: {
+      a: { x: -0.1, y: 0.68 },
+      b: { x: 0.2, y: 0.46 },
+      c: end,
+    },
+    velo: {
+      a: { x: 0.86, y: -0.08 },
+      b: { x: 0.72, y: 0.14 },
+      c: end,
+    },
+    calma: {
+      a: { x: -0.22, y: 0.3 },
+      b: { x: 0.06, y: 0.18 },
+      c: end,
+    },
+    fugaz: {
+      a: { x: -0.28, y: 0.14 },
+      b: { x: 0.02, y: 0.24 },
+      c: end,
+    },
   }
   return {
     age: 0,
@@ -328,8 +472,8 @@ function followingKind(kind: SkyCometKind) {
   return COMET_ORDER[(index + 1) % COMET_ORDER.length] ?? 'polvo'
 }
 
-function quietGap() {
-  return COMET_GAP_MIN + Math.random() * (COMET_GAP_MAX - COMET_GAP_MIN)
+function quietGap(index: number) {
+  return COMET_GAPS[index % COMET_GAPS.length] ?? COMET_GAPS[0]
 }
 
 export function mountStarfield(
@@ -344,9 +488,9 @@ export function mountStarfield(
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const stars: Star[] = []
   const samples: Sample[] = []
-  let trailShed = 0
   let comet: Comet | null = null
   let nextCometAt = COMET_DELAY
+  let gapIndex = 0
   let shownKind = getCometKind()
   let queuedKind = shownKind
   let width = 1
@@ -362,6 +506,7 @@ export function mountStarfield(
   let bgKey = ''
 
   const starGlow = makeSprite(128, 'rgba(255,255,255,0.95)', 'rgba(255,255,255,0.22)')
+  const spikeSprite = makeSpikeSprite()
   const dustSprites: Record<SkyPalette, HTMLCanvasElement> = {
     cristal: makeDustSprite('rgba(255, 244, 228, 0.95)', 'rgba(255, 214, 176, 0.62)', 'rgba(255, 196, 150, 0.3)'),
     linea: makeDustSprite('rgba(236, 244, 255, 0.92)', 'rgba(198, 216, 255, 0.58)', 'rgba(170, 198, 255, 0.26)'),
@@ -423,7 +568,6 @@ export function mountStarfield(
     canvas.width = Math.round(width * dpr)
     canvas.height = Math.round(height * dpr)
     samples.length = 0
-    trailShed = 0
     bgKey = ''
   }
 
@@ -524,16 +668,21 @@ export function mountStarfield(
 
       if (star.mag > 0.97 && appear > 0.04) {
         const spike = smoothstep(appear / 0.9)
-        const len = (6 + star.mag * 8) * spike
-        ctx.globalAlpha = alpha * 0.28 * spike
-        ctx.strokeStyle = '#fff'
-        ctx.lineWidth = 0.6
-        ctx.beginPath()
-        ctx.moveTo(x - len, y)
-        ctx.lineTo(x + len, y)
-        ctx.moveTo(x, y - len * 0.7)
-        ctx.lineTo(x, y + len * 0.7)
-        ctx.stroke()
+        const len = (9 + star.cross * 13) * spike
+        const girth = 0.7 + star.cross * 0.5
+        const beam = alpha * 0.34 * spike
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.globalAlpha = beam * 0.42
+        ctx.drawImage(spikeSprite, -len * 1.08, -3.5 * girth, len * 2.16, 7 * girth)
+        ctx.globalAlpha = beam
+        ctx.drawImage(spikeSprite, -len, -1.6 * girth, len * 2, 3.2 * girth)
+        ctx.rotate(Math.PI / 2)
+        ctx.globalAlpha = beam * 0.36
+        ctx.drawImage(spikeSprite, -len * 0.9, -3.2 * girth, len * 1.8, 6.4 * girth)
+        ctx.globalAlpha = beam * 0.9
+        ctx.drawImage(spikeSprite, -len * 0.78, -1.4 * girth, len * 1.56, 2.8 * girth)
+        ctx.restore()
       }
     }
     ctx.globalAlpha = 1
@@ -547,19 +696,48 @@ export function mountStarfield(
 
   function drawTail(paletteName: SkyPalette, look: CometLook) {
     const sprite = look.sprite === 'ion' ? ionSprites[paletteName] : dustSprites[paletteName]
-    const count = samples.length
-    const edge = 0.28
-    for (let index = 0; index < count; index += 1) {
+    for (let index = 0; index < samples.length; index += 1) {
       const sample = samples[index]
       if (!sample) continue
-      const fromTail = count === 1 ? 0 : index / (count - 1)
-      const remain = 1 - smoothstep((trailShed - fromTail) / edge)
-      const body = Math.exp(-(1 - fromTail) * (6.5 / look.tau))
-      const fade = remain * body
-      if (fade < 0.012) continue
       const age = elapsed - sample.born
+      const unit = clamp(age / Math.max(sample.life, 0.001))
+      const fade = look.snap
+        ? 1 - smoothstep((unit - 0.5) / 0.5)
+        : moteFade(age, sample.life, look.even)
+      if (fade < 0.012) continue
       const x = sample.nx * width
       const y = sample.ny * height
+      if (look.even) {
+        const body = 1
+        const across = look.width * (look.snap ? 0.95 - unit * 0.28 : 0.42)
+        const along = look.width * (look.snap ? 1.25 : 1.35)
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.rotate(Math.atan2(-sample.px, sample.py))
+        if (look.snap) {
+          ctx.globalAlpha = fade * look.alpha * 0.85 * body
+          ctx.drawImage(sprite, -along * 0.7, -across * 0.85, along * 1.4, across * 1.7)
+        }
+        ctx.globalAlpha = fade * look.alpha * (look.snap ? 0.32 : 1) * body
+        ctx.drawImage(sprite, -along / 2, -across * (look.snap ? 0.28 : 0.5), along, across * (look.snap ? 0.56 : 1))
+        ctx.restore()
+        continue
+      }
+      if (look.veil) {
+        const unit = clamp(age / sample.life)
+        const melt = smoothstep((unit - 0.08) / 0.62)
+        const across = look.width * (0.62 + melt * 0.7)
+        const along = look.width * (1.05 + melt * 2.1)
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.rotate(Math.atan2(-sample.px, sample.py))
+        ctx.globalAlpha = fade * look.alpha * (1 - melt * 0.55)
+        ctx.drawImage(sprite, -along * 0.42, -across * 0.38, along * 0.84, across * 0.76)
+        ctx.globalAlpha = fade * look.alpha * (0.22 + melt * 0.7)
+        ctx.drawImage(sprite, -along / 2, -across / 2, along, across)
+        ctx.restore()
+        continue
+      }
       const growth = 1 + Math.min(look.grow, age * 0.05)
       drawStamp(sprite, x, y, look.width * growth, fade * look.alpha)
       if (look.dustWidth > 0) {
@@ -577,13 +755,30 @@ export function mountStarfield(
 
   function drawHead(x: number, y: number, headAlpha: number, look: CometLook) {
     if (headAlpha < 0.025) return
-    const scale = clamp(Math.min(width, height) / 900, 0.75, 1.1)
+    const scale = clamp(Math.min(width, height) / 900, 0.75, 1.1) * (0.62 + 0.38 * headAlpha)
     const coma = look.coma * scale
     ctx.globalAlpha = headAlpha * look.head
     ctx.drawImage(comaSprite, x - coma / 2, y - coma / 2, coma, coma)
     const core = look.core * scale
     ctx.globalAlpha = headAlpha * look.head
     ctx.drawImage(coreSprite, x - core / 2, y - core / 2, core, core)
+  }
+
+  function stepMotes(dt: number) {
+    const drag = Math.exp(-dt * 0.42)
+    let write = 0
+    for (let index = 0; index < samples.length; index += 1) {
+      const sample = samples[index]
+      if (!sample) continue
+      if (elapsed - sample.born >= sample.life) continue
+      sample.vx *= drag
+      sample.vy *= drag
+      sample.nx += sample.vx * dt
+      sample.ny += sample.vy * dt
+      samples[write] = sample
+      write += 1
+    }
+    samples.length = write
   }
 
   function updateComet(dt: number, paletteName: SkyPalette) {
@@ -594,7 +789,6 @@ export function mountStarfield(
       queuedKind = kind
       comet = null
       samples.length = 0
-      trailShed = 0
       nextCometAt = Math.max(elapsed + 0.3, COMET_DELAY)
     }
 
@@ -603,7 +797,6 @@ export function mountStarfield(
       if (getCometKind() !== queuedKind) setCometKind(queuedKind)
       comet = createComet(queuedKind)
       queuedKind = followingKind(queuedKind)
-      trailShed = 0
       nextCometAt = Number.POSITIVE_INFINITY
     }
 
@@ -619,8 +812,10 @@ export function mountStarfield(
       const p2 = { x: comet.c.x * width, y: comet.c.y * height }
       const pos = quad(p0, p1, p2, comet.progress)
       const dist = Math.hypot(pos.x - p2.x, pos.y - p2.y)
-      const fadeRadius = Math.min(width, height) * 0.28
-      const headAlpha = dist >= fadeRadius ? 1 : smoothstep(dist / fadeRadius)
+      const fadeRadius = Math.min(width, height) * 0.11
+      const headAlpha = look.snap
+        ? 1 - smoothstep((linear - 0.7) / 0.3)
+        : (dist >= fadeRadius ? 1 : smoothstep(dist / fadeRadius))
       const prev = quad(p0, p1, p2, Math.max(0, comet.progress - 0.008))
       const dx = pos.x - prev.x
       const dy = pos.y - prev.y
@@ -629,42 +824,47 @@ export function mountStarfield(
       const py = dx / length
       const last = samples[samples.length - 1]
       const moved = last ? Math.hypot(pos.x - last.nx * width, pos.y - last.ny * height) : 99
-      const spacing = Math.max(1.05, look.width * 0.11)
-      if (moved > spacing) {
-        samples.push({
-          nx: pos.x / width,
-          ny: pos.y / height,
-          px,
-          py,
-          born: elapsed,
-        })
+      const spacing = look.snap
+        ? Math.max(1.4, look.width * 0.28)
+        : look.even
+          ? Math.max(1.1, look.width * 0.2)
+          : Math.max(1.05, look.width * 0.11)
+      if ((moved > spacing || !last) && headAlpha > 0.04) {
+        const span = 0.008 * comet.duration
+        const carry = look.coast * (0.82 + Math.random() * 0.36)
+        const spread = (look.snap ? 1.6 : look.even ? 2 : look.sprite === 'dust' ? 16 : 5) * (Math.random() - 0.5)
+        const fromX = last ? last.nx * width : pos.x
+        const fromY = last ? last.ny * height : pos.y
+        const gap = Math.hypot(pos.x - fromX, pos.y - fromY)
+        const steps = look.snap ? Math.max(1, Math.ceil(gap / spacing)) : 1
+        for (let step = 1; step <= steps; step += 1) {
+          const t = step / steps
+          samples.push({
+            nx: (fromX + (pos.x - fromX) * t) / width,
+            ny: (fromY + (pos.y - fromY) * t) / height,
+            vx: (dx / span * carry + px * spread) / width,
+            vy: (dy / span * carry + py * spread) / height,
+            px,
+            py,
+            born: elapsed,
+            life: look.life,
+          })
+        }
       }
-      const trailStart = 0.16
-      if (linear > trailStart) {
-        const trailT = smoothstep((linear - trailStart) / (1 - trailStart))
-        trailShed = Math.max(trailShed, trailT * 1.16)
-      }
-      head = { x: pos.x, y: pos.y, alpha: headAlpha }
+      head = headAlpha > 0.025 ? { x: pos.x, y: pos.y, alpha: headAlpha } : null
       if (linear >= 1) comet = null
     }
-    else if (samples.length) {
-      trailShed = Math.min(1.4, trailShed + dt / 2.6)
-    }
 
-    if (!comet && trailShed >= 1.32) {
-      samples.length = 0
-      trailShed = 0
-    }
-
+    stepMotes(dt)
     drawTail(paletteName, look)
     if (head) drawHead(head.x, head.y, head.alpha, look)
     ctx.globalAlpha = 1
 
     if (!comet && samples.length === 0 && !Number.isFinite(nextCometAt)) {
-      nextCometAt = elapsed + quietGap()
+      nextCometAt = elapsed + quietGap(gapIndex)
+      gapIndex += 1
     }
   }
-
   function frame(now: number) {
     if (stopped) return
     raf = requestAnimationFrame(frame)
