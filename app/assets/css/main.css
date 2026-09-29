@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit Variable", "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+}
+
+html {
+  background: #070910;
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: #070910;
+  overflow-x: clip;
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: rgba(231, 211, 161, 0.28);
+  color: #fff;
+}
+
+.night-text {
+  text-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+}
+
+.sky-page {
+  --ink: #f4efe6;
+  --muted: rgb(244 239 230 / 0.7);
+  --accent: #e7d3a1;
+  --line: rgb(231 211 161 / 0.35);
+  --panel: rgb(8 12 28 / 0.48);
+  --panel-border: rgb(255 255 255 / 0.14);
+  --button-ink: #1b140c;
+  color: var(--ink);
+}
+
+.sky-page[data-sky="linea"] {
+  --ink: #eef3fb;
+  --muted: rgb(238 243 251 / 0.72);
+  --accent: #d5e3ff;
+  --line: rgb(213 227 255 / 0.38);
+  --panel: transparent;
+  --panel-border: rgb(255 255 255 / 0.28);
+  --button-ink: #101623;
+}
+
+.sky-page[data-sky="umbral"] {
+  --ink: #f8efe2;
+  --muted: rgb(232 214 255 / 0.72);
+  --accent: #e4c27a;
+  --line: rgb(228 194 122 / 0.45);
+  --panel: transparent;
+  --panel-border: transparent;
+  --button-ink: #2a160c;
+}
+
+.sky-page[data-sky="umbral"] input[type="date"],
+.sky-page[data-sky="umbral"] input[type="time"] {
+  height: 2.15rem;
+  padding: 0;
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.sky-page[data-sky="umbral"] input[type="date"]::-webkit-datetime-edit,
+.sky-page[data-sky="umbral"] input[type="time"]::-webkit-datetime-edit,
+.sky-page[data-sky="umbral"] input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+.sky-page[data-sky="umbral"] input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.sky-page[data-sky="orbita"] {
+  --ink: #fff3e6;
+  --muted: rgb(255 243 230 / 0.72);
+  --accent: #f0b56b;
+  --line: rgb(240 181 107 / 0.42);
+  --panel: rgb(42 20 12 / 0.55);
+  --panel-border: rgb(240 181 107 / 0.3);
+  --button-ink: #24140a;
+}
+
+.sky-page input {
+  color-scheme: dark;
+}
+
+.sky-page input[type="date"]::-webkit-calendar-picker-indicator,
+.sky-page input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+  filter: invert(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
