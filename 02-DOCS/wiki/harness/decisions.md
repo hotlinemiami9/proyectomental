@@ -8,3 +8,5 @@
 - 2026-10-22 — MCP wiring is machine-local (`opencode.json` and `.cursor/mcp.json` excluded from git); skills are shared with the repository.
 - 2026-10-22 — Package runner for MCP servers and skill installs: `pnpm dlx`.
 - 2026-10-22 — Playwright reuses the installed Chromium at `~/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome` via `--executable-path`; its output directory `.playwright-mcp/` is gitignored.
+- 2026-10-22 — GitHub API access via the `gh` CLI (2.103.0, installed in `~/.local/bin`), not via an MCP server. Code already travels over the existing SSH remote.
+- 2026-10-22 — Supabase deferred until the first feature that needs accounts, saved charts or sharing. The chart calculation stays client-side and independent of any backend.
