@@ -5,13 +5,12 @@ description: Los principios no negociables que todas las fases de rsc-sdd deben 
 tags: [sdd, constitution]
 timestamp: 2026-10-23T07:30:17Z
 topic: sdd
-status: draft
-version: draft
+version: v1.0.0
 ---
 
 # pm — Constitution
 
-> Versión: borrador · Ratificada: pendiente · Última enmienda: 2026-10-23
+> Versión: v1.0.0 · Ratificada: 2026-10-23 · Última enmienda: 2026-10-23
 > Los principios no negociables de cada fase SDD. Los detalles de stack viven en
 > `package.json`, `nuxt.config.ts` y `02-DOCS/wiki/`; aquí se ratifica el principio.
 
@@ -25,7 +24,7 @@ version: draft
    calcula la carta.
 4. Solo dependencias con licencia permisiva (MIT, Apache-2.0, BSD). Nada AGPL ni sin
    licencia sin aprobación explícita. El motor y el renderer de la carta se fijan a una
-   versión exacta.
+   versión exacta. Las teselas de OpenStreetMap conservan su atribución visible.
 
 ## 2. Listón de calidad
 
@@ -97,3 +96,4 @@ Un cambio se entrega solo cuando todo esto se cumple:
 | Fecha | Versión | Cambio | Por qué |
 |---|---|---|---|
 | 2026-10-23 | draft | Borrador redactado tras el grilling y la calibración del repo. | Pendiente de ratificación. |
+| 2026-10-23 | v1.0.0 | Ratificada la constitución inicial con 20 principios. | Aprobación explícita de la persona. |

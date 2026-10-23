@@ -6,7 +6,7 @@ tags: [sdd, spec]
 timestamp: 2026-10-23T07:30:17Z
 topic: sdd
 slug: real-chart-calculation
-status: draft
+status: planned
 ---
 
 # Spec — Carta real de Diseño Humano
@@ -75,8 +75,9 @@ respuesta única.
   no una página rota.
 - La última entrada se recuerda en el mismo navegador; al volver a `/carta` se recalcula y
   se muestra. Una acción explícita permite borrarla.
-- Si la ciudad no aparece en el autocompletado, se puede fijar el lugar en un mapa; la zona
-  horaria se deriva y se muestra para confirmar.
+- Si la ciudad no aparece en el autocompletado, se puede fijar el lugar en un mapa con
+  teselas de OpenStreetMap y su atribución; la zona horaria se deriva y se muestra para
+  confirmar.
 - Si la hora local es ambigua (se repite al atrasar el reloj), la app pide elegir el offset
   antes de calcular.
 - Si la hora local no existe (se salta al adelantar el reloj), la app rechaza el envío con
@@ -93,16 +94,22 @@ respuesta única.
 - Dada la fecha, hora y lugar de Alba (1991-04-14 06:28, Santiago de Compostela), cuando se
   envían, entonces la carta coincide con Jovian en tipo, autoridad, perfil, definición,
   centros definidos, canales y las 26 activaciones.
-- Lo mismo para Río (1985-09-02 21:14, Montevideo), Isla (1998-01-29 11:03, Lisboa), el
-  caso ambiguo de Madrid (1991-09-29 02:30) y el histórico de Londres (1944-06-01 12:00).
+- Lo mismo para Río (1985-09-02 21:14, Montevideo), Isla (1998-01-29 11:03, Lisboa) y el
+  histórico de Londres (1944-06-01 12:00).
+- Dada la fecha, hora y lugar de Madrid (1991-09-29 02:30) con el offset CEST (UTC+2)
+  fijado, cuando se calcula, entonces coincide con la referencia de Jovian para ese
+  instante.
+- Dados los cinco fixtures de Jovian versionados antes de implementar, cuando se ejecutan
+  las pruebas, entonces la carta coincide con ellos; la implementación no genera sus
+  propios valores esperados.
 - Dados datos incompletos o inválidos, cuando se envía el formulario, entonces se muestran
   errores en línea y no se calcula.
 - Dada una ciudad escrita, cuando se elige una sugerencia del autocompletado, entonces la
   carta usa las coordenadas y la zona horaria de esa sugerencia.
 - Dada una ciudad sin resultados, cuando se fija un punto en el mapa, entonces la carta usa
   esas coordenadas y la zona horaria derivada.
-- Dada una hora ambigua, cuando se envía, entonces la app pide el offset y no calcula hasta
-  que se elige.
+- Dada la fecha, hora y lugar de Madrid (1991-09-29 02:30) sin offset fijado, cuando se
+  envía, entonces la app pide elegir entre CEST y CET y no calcula hasta que se elige.
 - Dada una hora inexistente, cuando se envía, entonces la app rechaza con un mensaje y no
   muestra carta.
 - Dada una carta válida, cuando se abre `/carta`, entonces el resumen aparece antes del
@@ -121,12 +128,19 @@ respuesta única.
 ## Puntos a aclarar
 
 - **suposición tomada** — las cinco referencias se generan con el calculador gratuito de
-  Jovian. *Base:* es la fuente elegida y no requiere cuenta. *Riesgo:* si Jovian no acepta
-  1944 o la hora ambigua, la cobertura de esos dos casos se reduce y habrá que documentarlo.
-- **suposición tomada** — la geocodificación usa un proveedor abierto y gratuito, sin
-  clave, desde el servidor. *Base:* la elección fue autocompletar + zona sin coste; la
-  privacidad pide no enviar datos a un tercero de pago. *Riesgo:* límites de uso o ciudades
-  pequeñas; el pin del mapa es el respaldo.
+  Jovian; para Madrid se fija el primer offset (CEST, UTC+2) y se introduce el instante UTC
+  equivalente. *Base:* es la fuente elegida y no requiere cuenta. *Riesgo:* si Jovian no
+  acepta 1944, se busca la versión UTC del mismo instante; si aun así no se puede, se
+  detiene la implementación y se enmienda la constitución explícitamente, nunca se baja el
+  listón en silencio.
+- **suposición tomada** — los cinco fixtures de Jovian se capturan y versionan antes de
+  escribir el cálculo; la implementación no genera sus propios valores esperados. *Base:*
+  evitar una validación circular. *Riesgo:* si un caso no se puede capturar, se aplica la
+  regla de enmienda explícita.
+- **suposición tomada** — la geocodificación y las teselas del mapa usan
+  OpenStreetMap/Photon, sin clave, con atribución visible y uso ligero. *Base:* elección
+  explícita de mapa OSM. *Riesgo:* políticas de uso y límites; si crece, self-host o
+  proveedor con clave.
 - **suposición tomada** — el tema del bodygraph es único (oro/violeta), no cambia con los
   cuatro estilos de cielo. *Base:* decisión de la ronda 4. *Riesgo:* si la carta se siente
   desconectada de la portada, se revisa el tema, no la estructura.
@@ -135,3 +149,12 @@ respuesta única.
   ciclo.
 - **área no formulable** — cómo explicar que una carta cambie si se actualiza el motor;
   todavía no está lo bastante definida para preguntarla.
+
+## Revisions
+
+- 2026-10-23 — Revisión fresca: Madrid fijado a CEST (UTC+2) para la golden; ambigüedad
+  probada aparte; fixtures de Jovian versionados antes de implementar; fallback de mapa con
+  OpenStreetMap y atribución; regla de enmienda explícita si Jovian no cubre 1944.
+- 2026-10-23 — Aprobada por la persona. Clarify: sin preguntas abiertas; las suposiciones
+  tipadas quedan validadas por la aprobación.
+- 2026-10-23 — Plan técnico aprobado; tareas derivadas. Estado: `planned`.

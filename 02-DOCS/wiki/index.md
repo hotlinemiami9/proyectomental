@@ -14,6 +14,8 @@
 |---|---|
 | Configuración del runtime SDD | `02-DOCS/wiki/sdd/config.yaml` |
 | Spec — Carta real de Diseño Humano | `02-DOCS/wiki/sdd/specs/real-chart-calculation.md` |
+| Plan — Carta real de Diseño Humano | `02-DOCS/wiki/sdd/plans/real-chart-calculation.md` |
+| Analysis — Carta real de Diseño Humano | `02-DOCS/wiki/sdd/analysis/real-chart-calculation.md` |
 
 ## Harness
 

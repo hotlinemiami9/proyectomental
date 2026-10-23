@@ -14,3 +14,5 @@
 - 2026-10-23 — SDD runtime calibrated: `02-DOCS/wiki/sdd/config.yaml`; registry refreshed.
 - 2026-10-23 — Chart feature decisions: server-side calculation with an MIT engine, vendored MIT bodygraph renderer, last chart in browser storage, Jovian golden charts.
 - 2026-10-23 — Constitution and spec drafted; ratification and approval pending.
+- 2026-10-23 — Constitution v1.0.0 ratified; spec `real-chart-calculation` approved after fresh-eyes review.
+- 2026-10-23 — Technical plan drafted; isolation decision (main vs worktree) pending.
