@@ -1,0 +1,9 @@
+node_modules
+.output
+.nuxt
+.nitro
+.cache
+.git
+.gitignore
+.pnpm-store
+*.log
